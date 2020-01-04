@@ -8,5 +8,5 @@
 
 void blink(unsigned int led);
 void blink_count(unsigned int led, unsigned int count);
-
+void button_init();
 #endif

@@ -37,6 +37,56 @@
 #define TIMx_ARR_15_BIT 15
 #define TIMx_ARR_0_BIT 0
 
+
+#define ADC1 1
+#define ADC2 2
+#define ADC3 3
+#define ADC_BASE 0x40012000
+#define ADC_OFFSET(n) (0x100*(n-1))
+
+#define ADC_SR_OFFSET 0x0
+#define ADC_EOC 1
+
+#define ADC_CR1_OFFSET 0x04
+#define ADC_CR1_RES_1_BIT 25
+#define ADC_CR1_RES_0_BIT 24
+#define ADC_CR1_SCAN 8
+
+#define ADC_CR2_OFFSET 0x08
+#define ADC_CR2_SWSTART 30
+#define ADC_CR2_EXTEN_1_BIT 29
+#define ADC_CR2_EXTEN_0_BIT 28
+#define ADC_CR2_ALIGN 11
+#define ADC_CR2_CONT 1
+#define ADC_CR2_ADON 0
+
+#define ADC_SMPR2_OFFSET 0x10
+#define ADC_SMPR2_SMPn_2_BIT(n) (3*n+2)
+#define ADC_SMPR2_SMPn_0_BIT(n) (3*n)
+
+#define ADC_SQR1_OFFSET 0x2C
+#define ADC_SQR1_L_3_BIT 23
+#define ADC_SQR1_L_0_BIT 20
+
+#define ADC_SQR3_OFFSET 0x34
+#define ADC_SQR3_SQ1_4_BIT 4
+#define ADC_SQR3_SQ1_0_BIT 0
+
+#define ADC_DR_OFFSET 0x4C
+
+#define ADC_COMMOM_OFFSET 0x300
+#define ADC_COMMOM_CCR_OFFSET 0x04
+#define ADC_ADCPRE_1_BIT 17
+#define ADC_ADCPRE_0_BIT 16
+#define ADC_DMA_1_BIT 15
+#define ADC_DMA_0_BIT 14
+#define ADC_DELAY_3_BIT 11
+#define ADC_DELAY_0_BIT 8
+#define ADC_MULTI_4_BIT 4
+#define ADC_MULTI_0_BIT 0
+
+#define ADC_COMMOM_CDR 0x08
+
 #define DAC_BASE 0x40007400
 #define DAC_CR_OFFSET 0x00
 #define DAC_CR_DMAUDRIE1 13
@@ -207,8 +257,9 @@
 
 #define RCC_APB2ENR_OFFSET 0x44
 #define SYSCFGEN_BIT 14
-#define USART1EN 4
+#define ADC1EN 8
 #define USART6EN 5
+#define USART1EN 4
 
 //GPIO
 #define GPIO_PORTA 0
