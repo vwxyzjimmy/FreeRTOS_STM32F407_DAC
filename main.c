@@ -123,23 +123,82 @@ void task3(){
 	}
 	uint8_t a_percent = 70;
 	uint16_t delay_count = 0;
+
+	uint8_t last_input[] = {0, 0, 0, 0, 0};
+	uint8_t last_input_ptr = 0;
+	uint8_t last_output[] = {0, 0, 0, 0, 0};
+	uint8_t last_output_ptr = 0;
+
 	while(1){
 		SET_BIT(GPIO_BASE(GPIO_PORTD) + GPIOx_BSRR_OFFSET, BSy_BIT(LED_ORANGE));
-
 		volatile unsigned int read_uv = READ_BIT(TIM4_BASE + TIMx_SR_OFFSET, TIMx_SR_UIF);
 		if(read_uv > 0){
 			CLEAR_BIT(TIM4_BASE + TIMx_SR_OFFSET, TIMx_SR_UIF);
+
 			uint8_t adc = ADC_ReadChannel1Data(ADC1);
 			uint8_t adc_play = adc;
+
 			last_play++;
 			if (last_play>=(delay_size))
 				last_play = 0;
-			if(play_mode == 0){
-				adc_play = (((100-a_percent)*adc_play + a_percent*(*(delay_ptr+last_play)))/100);
-			}
 
+			if(play_mode == 0){
+				//uint16_t minus = last_output[(last_output_ptr+1)%5] + 3.236*last_output[(last_output_ptr+2)%5] + 5.236*last_output[(last_output_ptr+3)%5] + 5.236*last_output[(last_output_ptr+4)%5] + 3.236*last_output[(last_output_ptr+5)%5];	//5th Butterworth
+				//uint16_t minus = last_output[(last_output_ptr+2)%5] + 2.613*last_output[(last_output_ptr+3)%5] + 3.413*last_output[(last_output_ptr+4)%5] + 2.613*last_output[(last_output_ptr+5)%5];	//4th Butterworth
+				uint16_t minus = last_output[(last_output_ptr+3)%5] + 2*last_output[(last_output_ptr+4)%5] + 2*last_output[(last_output_ptr+5)%5];	//3th Butterworth
+
+				uint16_t tmp_adc = adc;
+				if ((uint16_t)tmp_adc <= minus)
+					adc_play = 0;
+				else
+					adc_play = tmp_adc-minus;
+				if (adc_play>255)
+					adc_play =255;
+				/*
+				//adc_play = (((100-a_percent)*adc_play + a_percent*(*(delay_ptr+last_play)))/100);
+				//adc_play = last_output/4 + 3*last_input/32 + 3*adc/32;
+				adc_play = last_output/2 + last_input/16 + adc/16;
+				*/
+
+				last_input[last_input_ptr] = adc;
+				last_input_ptr = (last_input_ptr+1)%5;
+
+				last_output[last_output_ptr] = adc_play;
+				last_output_ptr = (last_output_ptr+1)%5;
+				printf("adc_play: %d\r\n", adc_play);
+			}
+			else if(play_mode == 1){
+				//adc_play = adc_play/4;
+				adc = ((uint8_t)*(play_ptr+play_count));
+				play_count++;
+				if(play_count>=200){
+					play_count = 0;
+				}
+				//uint16_t minus = last_output[(last_output_ptr+1)%5] + 3.236*last_output[(last_output_ptr+2)%5] + 5.236*last_output[(last_output_ptr+3)%5] + 5.236*last_output[(last_output_ptr+4)%5] + 3.236*last_output[(last_output_ptr+5)%5];	//5th Butterworth
+				//uint16_t minus = last_output[(last_output_ptr+2)%5] + 2.613*last_output[(last_output_ptr+3)%5] + 3.413*last_output[(last_output_ptr+4)%5] + 2.613*last_output[(last_output_ptr+5)%5];												//4th Butterworth
+				uint16_t minus = last_output[(last_output_ptr+3)%5] + 2*last_output[(last_output_ptr+4)%5] + 2*last_output[(last_output_ptr+5)%5];																								//3th Butterworth
+
+				uint16_t tmp_adc = adc;
+				if ((uint16_t)tmp_adc <= minus)
+					adc_play = 0;
+				else
+					adc_play = tmp_adc-minus;
+				last_input[last_input_ptr] = adc;
+				last_input_ptr = (last_input_ptr+1)%5;
+
+				last_output[last_output_ptr] = adc_play;
+				last_output_ptr = (last_output_ptr+1)%5;
+			}
+			else if(play_mode==2){
+				adc_play = ((uint8_t)*(play_ptr+play_count));
+				play_count++;
+				if(play_count>=200){
+					play_count = 0;
+				}
+			}
 			*(delay_ptr+last_play) = adc_play;
 			DAC_SetChannel1Data(adc_play);
+
 			/*
 			if (led_state==0){
 				led_state = 1;
@@ -155,6 +214,7 @@ void task3(){
 				play_count = 0;
 			}
 			*/
+
 		}
 	}
 }
@@ -168,7 +228,7 @@ int main(void){
 	REG(AIRCR_BASE) = NVIC_AIRCR_RESET_VALUE | NVIC_PRIORITYGROUP_4;
 
 	//xTaskCreate(task1, "task1", 1000, NULL, 1, NULL);
-	//xTaskCreate(task2, "task2", 1000, NULL, 1, NULL);
+	xTaskCreate(task2, "task2", 1000, NULL, 1, NULL);
 	xTaskCreate(task3, "task3", 16000, NULL, 1, NULL);
 	vTaskStartScheduler();
 
@@ -395,13 +455,15 @@ uint16_t ADC_ReadChannel1Data(uint32_t ADCn){
 
 void exti0_handler(void)
 {
+	play_mode++;
 	//clear pending
 	if(play_mode==0){
 		SET_BIT(GPIO_BASE(GPIO_PORTD) + GPIOx_BSRR_OFFSET, BSy_BIT(LED_BLUE));
-		play_mode = 1;
 	}
-	else{
+	else if(play_mode==1){
 		SET_BIT(GPIO_BASE(GPIO_PORTD) + GPIOx_BSRR_OFFSET, BRy_BIT(LED_BLUE));
+	}
+	else if(play_mode==3){
 		play_mode = 0;
 	}
 	printf("play_mode: %d\r\n", play_mode);
